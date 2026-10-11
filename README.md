@@ -1,20 +1,24 @@
 <p align="center">
-  <img src="docs/banner.png" alt="篝火云盘 Android 客户端" width="100%" />
+  <img src="docs/icon.png" width="148" alt="篝火云盘" />
 </p>
 
-<h1 align="center">篝火云盘 · Android 客户端</h1>
+<h1 align="center">篝火云盘</h1>
+
+<p align="center">
+  自建私有云盘的 Android 客户端<br/>
+  <sub>Kotlin + Jetpack Compose Material 3 · 原生实现 · 无广告、无统计 SDK</sub>
+</p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2EA44F" alt="License"></a>
-  <img src="https://img.shields.io/badge/version-1.0.7-D65A38" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.0.7-D65A38" alt="Version"><br/>
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin">
-  <img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20Material%203-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose">
+  <img src="https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose">
 </p>
 
 <p align="center">
-  篝火云盘（gopan）的原生 Android 客户端 —— Kotlin + Jetpack Compose，无 WebView、无广告、无统计 SDK。<br/>
-  需要配合自建的篝火云盘服务端使用；登录时填写服务器地址即可接入。
+  配合自建的篝火云盘服务端使用，登录时填写服务器地址即可接入。
 </p>
 
 ## 界面预览
