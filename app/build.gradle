@@ -1,0 +1,35 @@
+plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android'; id 'org.jetbrains.kotlin.plugin.compose' }
+if (project.hasProperty('visualQA')) apply plugin: 'app.cash.paparazzi'
+android {
+    namespace 'cn.hcy.gopan'
+    compileSdk 35
+    defaultConfig { applicationId 'cn.hcy.gopan'; minSdk 26; targetSdk 35; versionCode 8; versionName '1.0.7'; testInstrumentationRunner 'cn.hcy.gopan.FlowTest' }
+    buildTypes { release { minifyEnabled true; shrinkResources true; signingConfig signingConfigs.debug; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    kotlinOptions { jvmTarget = '17'; freeCompilerArgs += ['-opt-in=androidx.compose.material3.ExperimentalMaterial3Api', '-opt-in=androidx.compose.foundation.ExperimentalFoundationApi'] }
+    buildFeatures { compose true }
+    if (project.hasProperty('visualQA')) sourceSets.test.java.srcDir 'src/visualTest/java'
+    lint { abortOnError true }
+}
+configurations { sourceFormatter }
+tasks.register('formatKotlin', JavaExec) {
+    classpath = configurations.sourceFormatter
+    mainClass = 'com.facebook.ktfmt.cli.Main'
+    args '--kotlinlang-style'
+    args fileTree('src') { include '**/*.kt' }.files.collect { it.absolutePath }
+}
+dependencies {
+    sourceFormatter 'com.facebook:ktfmt:0.54'
+    implementation platform('androidx.compose:compose-bom:2024.10.01')
+    implementation 'androidx.activity:activity-compose:1.9.2'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.6'
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'io.coil-kt:coil-compose:2.7.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'androidx.media3:media3-exoplayer:1.4.1'
+    implementation 'androidx.media3:media3-ui:1.4.1'
+    implementation 'androidx.media3:media3-datasource-okhttp:1.4.1'
+}
+
