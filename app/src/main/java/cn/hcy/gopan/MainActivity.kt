@@ -152,6 +152,8 @@ internal fun DriveApp(s: DriveState, incoming: List<Uri>, clearIncoming: () -> U
     var batchMoveOpen by remember { mutableStateOf(false) }
     var profileEdit by remember { mutableStateOf(false) }
     var passwordEdit by remember { mutableStateOf(false) }
+    var emailEdit by remember { mutableStateOf(false) }
+    var emailNudgeDismissed by remember { mutableStateOf(s.prefs.getBoolean("email_nudge_hide", false)) }
     var sessions by remember { mutableStateOf<List<JSONObject>?>(null) }
     var publicUser by remember { mutableStateOf<JSONObject?>(null) }
     var exportTask by remember { mutableStateOf<JSONObject?>(null) }
@@ -222,6 +224,38 @@ internal fun DriveApp(s: DriveState, incoming: List<Uri>, clearIncoming: () -> U
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+            // 老账号未绑邮箱：提示一次，可关闭；点「去绑定」进账户页。
+            if (
+                s.site.optBoolean("emailVerify", false) &&
+                    s.email == null &&
+                    !emailNudgeDismissed &&
+                    s.page == "main"
+            )
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Mail, null, Modifier.size(17.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            "你还没有绑定邮箱——绑定后忘记密码可自助找回。",
+                            Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        TextButton(onClick = {
+                            emailNudgeDismissed = true
+                            s.prefs.edit().putBoolean("email_nudge_hide", true).apply()
+                            s.tab = 4
+                            s.page = "main"
+                            emailEdit = true
+                        }) { Text("去绑定") }
+                        IconButton(onClick = {
+                            emailNudgeDismissed = true
+                            s.prefs.edit().putBoolean("email_nudge_hide", true).apply()
+                        }) { Icon(Icons.Outlined.Close, "关闭提醒", Modifier.size(15.dp)) }
+                    }
+                }
             if (s.failure.isNotEmpty())
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -323,6 +357,7 @@ internal fun DriveApp(s: DriveState, incoming: List<Uri>, clearIncoming: () -> U
                                             s.shares = s.request("/api/shares").rows("shares")
                                         }
                                     },
+                                    onEmail = { emailEdit = true },
                                 )
                         }
                 }
@@ -454,6 +489,7 @@ internal fun DriveApp(s: DriveState, incoming: List<Uri>, clearIncoming: () -> U
         )
     if (profileEdit) EditProfile(s) { profileEdit = false }
     if (passwordEdit) PasswordDialog(s) { passwordEdit = false }
+    if (emailEdit) EmailBindSheet(s) { emailEdit = false }
     sessions?.let { rows -> SessionSheet(s, rows) { sessions = null } }
     publicUser?.let { UserSheet(s, it) { publicUser = null } }
 }

@@ -931,3 +931,117 @@ internal fun UserSheet(s: DriveState, data: JSONObject, onDismiss: () -> Unit) {
         }
     }
 }
+
+/** 邮箱绑定 / 换绑：发码 → 校验落库，与网页端同一套接口。 */
+@Composable
+internal fun EmailBindSheet(s: DriveState, onDismiss: () -> Unit) {
+    var email by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    var countdown by remember { mutableIntStateOf(0) }
+    var sending by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf("") }
+    val regex = remember { Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$") }
+    val valid = regex.matches(email.trim())
+    LaunchedEffect(countdown) {
+        if (countdown > 0) {
+            kotlinx.coroutines.delay(1000)
+            countdown -= 1
+        }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(horizontal = 24.dp).imePadding().navigationBarsPadding()) {
+            Text(
+                if (s.email == null) "绑定邮箱" else "换绑邮箱",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                s.email?.let { "当前绑定：$it。换绑后忘记密码将发到新邮箱。" }
+                    ?: "绑定后忘记密码可自助找回；邮箱不会公开展示。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(20.dp))
+            OutlinedTextField(
+                email,
+                { email = it },
+                label = { Text("邮箱地址") },
+                leadingIcon = { Icon(Icons.Outlined.Mail, null) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    code,
+                    { code = it },
+                    label = { Text("邮箱验证码") },
+                    leadingIcon = { Icon(Icons.Outlined.Pin, null) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(10.dp))
+                OutlinedButton(
+                    onClick = {
+                        localError = ""
+                        if (!valid) {
+                            localError = "请填写有效邮箱"
+                            return@OutlinedButton
+                        }
+                        sending = true
+                        s.launch {
+                            try {
+                                val r =
+                                    s.request(
+                                        "/api/me/email/send-code",
+                                        "POST",
+                                        Api.json("email", email.trim()),
+                                    )
+                                countdown = (r.optInt("expiresIn", 600) / 10).coerceIn(10, 60)
+                            } finally {
+                                sending = false
+                            }
+                        }
+                    },
+                    enabled = !sending && countdown == 0 && valid,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.height(56.dp),
+                ) {
+                    Text(
+                        if (countdown > 0) "${countdown}s" else if (sending) "发送中" else "发验证码",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+            val shown = localError.ifBlank { s.failure }
+            if (shown.isNotBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Text(shown, color = MaterialTheme.colorScheme.error)
+            }
+            Spacer(Modifier.height(18.dp))
+            Button(
+                onClick = {
+                    s.launch(true) {
+                        val r =
+                            s.request(
+                                "/api/me/email",
+                                "POST",
+                                Api.json("email", email.trim(), "code", code.trim()),
+                            )
+                        s.email = r.optString("email").ifBlank { null }
+                        s.notice = if (s.email == null) "邮箱已绑定" else "邮箱已更新"
+                        onDismiss()
+                    }
+                },
+                enabled = !s.busy && valid && code.trim().length >= 4,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+            ) { Text(if (s.busy) "正在提交…" else "确认绑定") }
+            Spacer(Modifier.height(28.dp))
+        }
+    }
+}

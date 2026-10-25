@@ -26,6 +26,8 @@ internal class DriveState(val context: Context, val scope: CoroutineScope) {
     val api = Api.get(context)
     val prefs = context.getSharedPreferences("settings", 0)
     var user by mutableStateOf<JSONObject?>(null)
+    /** 已绑定的邮箱；null 表示未绑定（老账号），用于提示与账户页展示。 */
+    var email by mutableStateOf<String?>(null)
     var site by mutableStateOf(JSONObject())
     var tab by mutableIntStateOf(0)
     var folder by mutableStateOf<Int?>(null)
@@ -82,7 +84,9 @@ internal class DriveState(val context: Context, val scope: CoroutineScope) {
         launch {
             if (api.loggedIn()) {
                 try {
-                    user = request("/api/auth/me").getJSONObject("user")
+                    val me = request("/api/auth/me")
+                    user = me.getJSONObject("user")
+                    email = me.optString("email", "").ifBlank { null }
                     site = request("/api/site")
                     load()
                 } finally {
@@ -92,26 +96,35 @@ internal class DriveState(val context: Context, val scope: CoroutineScope) {
         }
     }
 
-    fun login(server: String, username: String, password: String, register: Boolean) {
+    fun login(
+        server: String,
+        username: String,
+        password: String,
+        register: Boolean,
+        email: String? = null,
+        code: String? = null,
+    ) {
         launch(true) {
             withContext(Dispatchers.IO) { api.setBase(server) }
             site = request("/api/site")
             if (register && !site.optBoolean("registrationOpen")) error("站点未开放注册")
-            user =
-                request(
-                        "/api/auth/" + if (register) "register" else "login",
-                        "POST",
-                        // 登录即上报设备标识，服务端存到会话上，登录设备列表用来区分机器。
-                        Api.json(
-                            "username",
-                            username.trim(),
-                            "password",
-                            password,
-                            "device",
-                            "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} · Android ${android.os.Build.VERSION.RELEASE}",
-                        ),
-                    )
-                    .getJSONObject("user")
+            val body =
+                Api.json(
+                    "username",
+                    username.trim(),
+                    "password",
+                    password,
+                    "device",
+                    "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} · Android ${android.os.Build.VERSION.RELEASE}",
+                )
+            // 服务端开启邮箱强校验时，注册必须带上邮箱与验证码。
+            if (register && email != null && code != null) {
+                body.put("email", email.trim())
+                body.put("code", code.trim())
+            }
+            val auth = request("/api/auth/" + if (register) "register" else "login", "POST", body)
+            user = auth.getJSONObject("user")
+            this@DriveState.email = auth.optString("email", "").ifBlank { null }
             prefs.edit().putString("username", username.trim()).apply()
             tab = 0
             page = "main"
@@ -145,7 +158,11 @@ internal class DriveState(val context: Context, val scope: CoroutineScope) {
                             site = request("/api/site")
                             messages = request("/api/guestbook?limit=100").rows("messages")
                         }
-                        4 -> user = request("/api/auth/me").getJSONObject("user")
+                        4 -> {
+                            val me = request("/api/auth/me")
+                            user = me.getJSONObject("user")
+                            email = me.optString("email", "").ifBlank { null }
+                        }
                     }
             }
         } finally {
@@ -327,6 +344,7 @@ internal class DriveState(val context: Context, val scope: CoroutineScope) {
     }
 
     fun logout() {
+        email = null
         launch(true) {
             withContext(Dispatchers.IO) { Transfers.pauseOwner(context) }
             request("/api/auth/logout", "POST")

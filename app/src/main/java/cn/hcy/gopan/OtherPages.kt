@@ -278,6 +278,7 @@ internal fun ProfilePage(
     onSessions: () -> Unit,
     onLogout: () -> Unit,
     onShares: () -> Unit,
+    onEmail: () -> Unit,
 ) {
     val person = s.user ?: return
     val colors = MaterialTheme.colorScheme
@@ -401,6 +402,13 @@ internal fun ProfilePage(
                     }
                     SettingRow(Icons.Outlined.Lock, "修改密码", "密码修改后其他设备会退出", onSecurity)
                     SettingRow(Icons.Outlined.Devices, "登录设备", "查看会话并退出其他设备", onSessions)
+                    if (s.site.optBoolean("emailVerify", false))
+                        SettingRow(
+                            Icons.Outlined.Mail,
+                            if (s.email == null) "绑定邮箱" else "换绑邮箱",
+                            s.email ?: "未绑定，绑定后可自助找回密码",
+                            onEmail,
+                        )
                 }
             }
         }

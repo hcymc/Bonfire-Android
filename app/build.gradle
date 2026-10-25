@@ -3,7 +3,7 @@ if (project.hasProperty('visualQA')) apply plugin: 'app.cash.paparazzi'
 android {
     namespace 'cn.hcy.gopan'
     compileSdk 35
-    defaultConfig { applicationId 'cn.hcy.gopan'; minSdk 26; targetSdk 35; versionCode 8; versionName '1.0.7'; testInstrumentationRunner 'cn.hcy.gopan.FlowTest' }
+    defaultConfig { applicationId 'cn.hcy.gopan'; minSdk 26; targetSdk 35; versionCode 9; versionName '1.0.8'; testInstrumentationRunner 'cn.hcy.gopan.FlowTest' }
     buildTypes { release { minifyEnabled true; shrinkResources true; signingConfig signingConfigs.debug; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = '17'; freeCompilerArgs += ['-opt-in=androidx.compose.material3.ExperimentalMaterial3Api', '-opt-in=androidx.compose.foundation.ExperimentalFoundationApi'] }
